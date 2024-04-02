@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.dictionaryapp.R
 import com.example.dictionaryapp.domain.model.Meaning
 import com.example.dictionaryapp.domain.model.WordItem
+import com.example.dictionaryapp.presentation.util.measureTextWidth
 
 @Composable
 fun MainScreen(
@@ -207,47 +209,53 @@ fun Meaning(
                 )
         )
 
-        if (meaning.definition.definition.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = 8.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.definition),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 19.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = meaning.definition.definition,
-                    fontSize = 17.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-        }
+        val lastElementDp = extraWordInfo(
+            elmName = stringResource(R.string.definition),
+            elmInfoText = meaning.definition.definition
+        )
 
-        if (meaning.definition.example.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = 8.dp)
+        extraWordInfo(
+            elmName = stringResource(R.string.example),
+            elmInfoText = meaning.definition.example,
+            lastElementDp = lastElementDp
+        )
+    }
+}
 
-            ) {
-                Text(
-                    text = stringResource(R.string.example),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 19.sp,
-                    color = MaterialTheme.colorScheme.primary
+@Composable
+fun extraWordInfo(
+    elmName: String,
+    elmInfoText: String,
+    lastElementDp: Dp = 0.dp,
+    spacerDp: Dp = 12.dp,
+    elmTextStyle: TextStyle = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 19.sp,
+        color = MaterialTheme.colorScheme.primary
+    )
+): Dp {
+    val currentElementDp = measureTextWidth(elmName, elmTextStyle)
+    if (elmInfoText.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+        ) {
+            Text(
+                text = elmName,
+                style = elmTextStyle
+            )
+            Spacer(
+                modifier = Modifier.width(
+                    if (lastElementDp > 0.dp) lastElementDp - currentElementDp else spacerDp
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = meaning.definition.example,
-                    fontSize = 17.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+            )
+            Text(
+                text = elmInfoText,
+                fontSize = 17.sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
     }
+    return currentElementDp + spacerDp
 }
