@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,7 +33,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,7 +40,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.dictionaryapp.R
 import com.example.dictionaryapp.domain.model.Meaning
 import com.example.dictionaryapp.domain.model.WordItem
-import com.example.dictionaryapp.presentation.util.measureTextWidth
 
 @Composable
 fun MainScreen(
@@ -208,54 +205,40 @@ fun Meaning(
                     end = 12.dp
                 )
         )
-
-        val lastElementDp = extraWordInfo(
-            elmName = stringResource(R.string.definition),
-            elmInfoText = meaning.definition.definition
+        WordInfo(
+            infoName = stringResource(R.string.definition),
+            infoText = meaning.definition.definition
         )
-
-        extraWordInfo(
-            elmName = stringResource(R.string.example),
-            elmInfoText = meaning.definition.example,
-            lastElementDp = lastElementDp
+        WordInfo(
+            infoName = stringResource(R.string.example),
+            infoText = meaning.definition.example
         )
     }
 }
 
 @Composable
-fun extraWordInfo(
-    elmName: String,
-    elmInfoText: String,
-    lastElementDp: Dp = 0.dp,
-    spacerDp: Dp = 12.dp,
-    elmTextStyle: TextStyle = TextStyle(
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 19.sp,
-        color = MaterialTheme.colorScheme.primary
-    )
-): Dp {
-    val currentElementDp = measureTextWidth(elmName, elmTextStyle)
-    if (elmInfoText.isNotEmpty()) {
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-        ) {
-            Text(
-                text = elmName,
-                style = elmTextStyle
-            )
-            Spacer(
-                modifier = Modifier.width(
-                    if (lastElementDp > 0.dp) lastElementDp - currentElementDp else spacerDp
-                )
-            )
-            Text(
-                text = elmInfoText,
-                fontSize = 17.sp,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+fun WordInfo(
+    infoName: String,
+    infoText: String
+) {
+    if (infoText.isEmpty()) {
+        return
     }
-    return currentElementDp + spacerDp
+    Spacer(modifier = Modifier.height(8.dp))
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+    ) {
+        Text(
+            text = infoName,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 19.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = infoText,
+            fontSize = 17.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
 }
