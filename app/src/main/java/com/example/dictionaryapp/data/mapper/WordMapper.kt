@@ -8,7 +8,7 @@ import com.example.dictionaryapp.domain.model.Meaning
 import com.example.dictionaryapp.domain.model.WordItem
 
 fun WordItemDto.toWordItem() = WordItem (
-    word = word ?: "",
+    word = word?.replaceFirstChar(Char::titlecase) ?: "",
     meanings = meanings?.map {
         it.toMeaning()
     } ?: emptyList(),
