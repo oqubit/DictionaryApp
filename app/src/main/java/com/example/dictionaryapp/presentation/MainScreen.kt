@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,16 +25,23 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,20 +55,38 @@ fun MainScreen(
     vm: MainViewModel = hiltViewModel<MainViewModel>()
 ) {
     val state by vm.mainState.collectAsStateWithLifecycle()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
+            LaunchedEffect(key1 = state.errorOccurred) {
+                if (state.errorOccurred) {
+                    keyboardController?.show()
+                    focusRequester.requestFocus()
+                }
+            }
             OutlinedTextField(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 5.dp, horizontal = 16.dp),
+                    .padding(vertical = 5.dp, horizontal = 16.dp)
+                    .focusRequester(focusRequester),
                 value = state.searchWord,
                 onValueChange = {
                     vm.onEvent(
                         MainUiEvents.OnSearchWordChange(it)
                     )
                 },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        vm.onEvent(MainUiEvents.OnSearchClick)
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                    }
+                ),
                 trailingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.Search,
@@ -68,9 +95,9 @@ fun MainScreen(
                         modifier = Modifier
                             .size(30.dp)
                             .clickable {
-                                vm.onEvent(
-                                    MainUiEvents.OnSearchClick
-                                )
+                                vm.onEvent(MainUiEvents.OnSearchClick)
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
                             }
                     )
                 },
@@ -113,20 +140,21 @@ fun MyScreen(
             state.wordItem?.let { wordItem ->
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
-                    text = wordItem.word,
+                    text = if (state.showError) stringResource(R.string.hmm) else wordItem.word,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = wordItem.phonetic,
+                    text = if (state.showError) state.errorMessage else wordItem.phonetic,
                     fontSize = 17.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(20.dp))
             }
         }
+
         Box(
             modifier = Modifier
                 .padding(top = 110.dp)
@@ -137,8 +165,12 @@ fun MyScreen(
                         topEnd = 50.dp
                     )
                 )
-                .background(MaterialTheme.colorScheme.secondaryContainer.copy(0.7f))
-
+                .background(
+                    if (state.showError)
+                        MaterialTheme.colorScheme.background
+                    else
+                        MaterialTheme.colorScheme.secondaryContainer.copy(0.7f)
+                )
         ) {
             if (state.isLoading) {
                 CircularProgressIndicator(
@@ -147,13 +179,12 @@ fun MyScreen(
                         .align(Alignment.Center),
                     color = MaterialTheme.colorScheme.primary
                 )
-            } else {
+            } else if (!state.showError) {
                 state.wordItem?.let { wordItem ->
                     WordResult(wordItem)
                 }
             }
         }
-
     }
 }
 

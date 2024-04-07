@@ -8,6 +8,7 @@ import com.example.dictionaryapp.domain.model.WordItem
 import com.example.dictionaryapp.domain.util.MyResult
 import com.example.dictionaryapp.domain.repository.DictionaryRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
@@ -16,40 +17,38 @@ import javax.inject.Inject
 class DictionaryRepositoryImpl @Inject constructor(
     private val dictionaryApi: DictionaryApi,
     private val application: Application
-): DictionaryRepository {
+) : DictionaryRepository {
     override suspend fun getWordResult(word: String): Flow<MyResult<WordItem>> {
         return flow {
-            emit(MyResult.Loading(true))
-
             val remoteWordResultDto = try {
                 dictionaryApi.getWordResult(word)
             } catch (e: HttpException) {
-                e.printStackTrace()
-                emit(MyResult.Error(application.getString(R.string.failed_to_get_a_result)))
-                emit(MyResult.Loading(false))
+                emitOnFail(e)
                 return@flow
             } catch (e: IOException) {
-                e.printStackTrace()
-                emit(MyResult.Error(application.getString(R.string.failed_to_get_a_result)))
-                emit(MyResult.Loading(false))
+                emitOnFail(e)
                 return@flow
             } catch (e: Exception) {
-                e.printStackTrace()
-                emit(MyResult.Error(application.getString(R.string.failed_to_get_a_result)))
-                emit(MyResult.Loading(false))
+                emitOnFail(e)
                 return@flow
             }
-
-            remoteWordResultDto?.let{ wordResultDto ->
+            remoteWordResultDto?.let { wordResultDto ->
                 wordResultDto[0]?.let { wordItemDto ->
                     emit(MyResult.Success(wordItemDto.toWordItem()))
-                    emit(MyResult.Loading(false))
                     return@flow
                 }
             }
-
-            emit(MyResult.Error(application.getString(R.string.failed_to_get_a_result)))
-            emit(MyResult.Loading(false))
+            emitOnFail()
         }
     }
+
+    private suspend inline fun FlowCollector<MyResult<WordItem>>.emitOnFail(
+        e: Exception? = null,
+        errorMessage: String = application.getString(R.string.couldnt_find_this_word)
+    ) {
+        e?.printStackTrace()
+        emit(MyResult.Error(errorMessage))
+        // emit(MyResult.Loading(false))
+    }
+
 }

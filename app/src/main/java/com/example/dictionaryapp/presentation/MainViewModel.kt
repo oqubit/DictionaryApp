@@ -1,7 +1,5 @@
 package com.example.dictionaryapp.presentation
 
-import android.util.Log
-import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dictionaryapp.domain.repository.DictionaryRepository
@@ -29,9 +27,6 @@ class MainViewModel @Inject constructor(
     private var searchJob: Job? = null
 
     init {
-        _mainState.update {
-            it.copy(searchWord = "Welcome", isLoading = true)
-        }
         onEvent(MainUiEvents.OnSearchClick)
     }
 
@@ -40,7 +35,7 @@ class MainViewModel @Inject constructor(
             MainUiEvents.OnSearchClick -> {
                 searchJob?.cancel()
                 searchJob = viewModelScope.launch {
-                    loadWordResult()
+                    searchWord()
                 }
             }
 
@@ -54,29 +49,42 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun loadWordResult() {
-        viewModelScope.launch {
-            dictionaryRepository.getWordResult(
-                mainState.value.searchWord.lowercase()
-            ).collect { result ->
-                when (result) {
-                    is MyResult.Error -> {
-                        result.message?.let {
-                            Log.wtf(TAG, it) // o_Q
-                        }
-                    }
+    private fun setPreWordLoadMainState() {
+        _mainState.update {
+            it.copy(
+                isLoading = true,
+                errorOccurred = false
+            )
+        }
+    }
 
-                    is MyResult.Loading -> {
+    private suspend fun searchWord() {
+        setPreWordLoadMainState()
+        dictionaryRepository.getWordResult(
+            mainState.value.searchWord.lowercase()
+        ).collect { result ->
+            when (result) {
+                is MyResult.Error -> {
+                    result.message?.let { err ->
                         _mainState.update {
-                            it.copy(isLoading = result.isLoading)
+                            it.copy(
+                                errorOccurred = true,
+                                errorMessage = err,
+                                showError = true,
+                                isLoading = false
+                            )
                         }
                     }
+                }
 
-                    is MyResult.Success -> {
-                        result.data?.let { wordItem ->
-                            _mainState.update {
-                                it.copy(wordItem = wordItem)
-                            }
+                is MyResult.Success -> {
+                    result.data?.let { wordItem ->
+                        _mainState.update {
+                            it.copy(
+                                wordItem = wordItem,
+                                showError = false,
+                                isLoading = false
+                            )
                         }
                     }
                 }

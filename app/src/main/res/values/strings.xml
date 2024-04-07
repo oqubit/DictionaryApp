@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">Dictionary App</string>
-    <string name="failed_to_get_a_result">Failed to get a result</string>
+    <string name="couldnt_find_this_word">Couldn\'t find this word!</string>
     <string name="search_a_word">Search a word</string>
     <string name="definition">Definition:\u0020</string>
     <string name="example">Example:\u0020\u0020\u0020</string>
+    <string name="hmm">Hmm...</string>
 </resources>
