@@ -47,7 +47,7 @@ class MainViewModel @Inject constructor(
             is MainUiEvents.OnSearchWordChange -> {
                 _mainState.update {
                     it.copy(
-                        searchWord = mainUiEvent.newWord
+                        searchWord = mainUiEvent.newWord.lowercase()
                     )
                 }
             }
@@ -57,7 +57,7 @@ class MainViewModel @Inject constructor(
     private fun loadWordResult() {
         viewModelScope.launch {
             dictionaryRepository.getWordResult(
-                mainState.value.searchWord.lowercase()
+                mainState.value.searchWord
             ).collect { result ->
                 when (result) {
                     is MyResult.Error -> {
