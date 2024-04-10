@@ -1,5 +1,6 @@
 package com.example.dictionaryapp.presentation
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -26,7 +27,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,19 +42,25 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewFontScale
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.dictionaryapp.R
+import com.example.dictionaryapp.domain.model.Definition
 import com.example.dictionaryapp.domain.model.Meaning
 import com.example.dictionaryapp.domain.model.WordItem
+import com.example.dictionaryapp.ui.theme.DictionaryAppTheme
 
 @Composable
 fun MainScreen(
-    vm: MainViewModel = hiltViewModel<MainViewModel>()
+    state: MainState,
+    onEvent: (MainUiEvents) -> Unit
 ) {
-    val state by vm.mainState.collectAsStateWithLifecycle()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
@@ -75,14 +81,14 @@ fun MainScreen(
                     .focusRequester(focusRequester),
                 value = state.searchWord,
                 onValueChange = {
-                    vm.onEvent(
+                    onEvent(
                         MainUiEvents.OnSearchWordChange(it)
                     )
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = {
-                        vm.onEvent(MainUiEvents.OnSearchClick)
+                        onEvent(MainUiEvents.OnSearchClick)
                         keyboardController?.hide()
                         focusManager.clearFocus()
                     }
@@ -95,7 +101,7 @@ fun MainScreen(
                         modifier = Modifier
                             .size(30.dp)
                             .clickable {
-                                vm.onEvent(MainUiEvents.OnSearchClick)
+                                onEvent(MainUiEvents.OnSearchClick)
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
                             }
@@ -270,6 +276,81 @@ fun WordInfo(
             text = infoText,
             fontSize = 17.sp,
             color = MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
+
+data class PreviewParams(
+    val isLoading: Boolean,
+    val showError: Boolean
+)
+class MyPreviewParamsProvider: PreviewParameterProvider<PreviewParams> {
+    override val values: Sequence<PreviewParams>
+        get() = sequenceOf(
+            PreviewParams(isLoading = false, showError = false),
+            PreviewParams(isLoading = false, showError = true),
+            PreviewParams(isLoading = true, showError = false),
+            PreviewParams(isLoading = true, showError = true)
+        )
+}
+@Preview(
+    fontScale = 1f,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+// @PreviewScreenSizes
+// @PreviewFontScale
+// @PreviewLightDark
+@Composable
+private fun MainScreenPreview(
+    @PreviewParameter(MyPreviewParamsProvider::class) data: PreviewParams
+) {
+    DictionaryAppTheme {
+        MainScreen(
+            onEvent = {},
+            state = MainState(
+                isLoading = data.isLoading,
+                showError = data.showError,
+                errorMessage = stringResource(R.string.couldnt_find_this_word),
+                wordItem = WordItem(
+                    word = "Welcome",
+                    phonetic = "/ˈwɛlkəm/",
+                    meanings = listOf(
+                        Meaning(
+                            partOfSpeech = "noun",
+                            definition = Definition(
+                                definition = "The act of greeting someone’s arrival, " +
+                                        "especially by saying \"Welcome!\"; reception.",
+                                example = ""
+                            )
+                        ),
+                        Meaning(
+                            partOfSpeech = "verb",
+                            definition = Definition(
+                                definition = "To affirm or greet the arrival of someone, " +
+                                        "especially by saying \"Welcome!\".",
+                                example = ""
+                            )
+                        ),
+                        Meaning(
+                            partOfSpeech = "adjective",
+                            definition = Definition(
+                                definition = "Whose arrival is a cause of joy; " +
+                                        "received with gladness; admitted willingly to the " +
+                                        "house, entertainment, or company.",
+                                example = "Refugees welcome in London!"
+                            )
+                        ),
+                        Meaning(
+                            partOfSpeech = "interjection",
+                            definition = Definition(
+                                definition = "Greeting given upon someone's arrival.",
+                                example = ""
+                            )
+                        )
+                    )
+                )
+            )
         )
     }
 }
