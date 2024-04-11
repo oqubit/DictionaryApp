@@ -2,17 +2,20 @@ package com.example.dictionaryapp
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.toArgb
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.dictionaryapp.presentation.MainScreen
 import com.example.dictionaryapp.presentation.MainViewModel
 import com.example.dictionaryapp.ui.theme.DictionaryAppTheme
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -31,10 +34,16 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun BarColor() {
-        val systemUiController = rememberSystemUiController()
-        val color = MaterialTheme.colorScheme.background
-        LaunchedEffect(color) {
-            systemUiController.setSystemBarsColor(color)
+        val color = MaterialTheme.colorScheme.background.toArgb()
+        val isDarkTheme = isSystemInDarkTheme()
+        LaunchedEffect(isDarkTheme) {
+            enableEdgeToEdge(
+                statusBarStyle =
+                if (isDarkTheme)
+                    SystemBarStyle.dark(color)
+                else
+                    SystemBarStyle.light(color, color)
+            )
         }
     }
 }

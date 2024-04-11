@@ -90,6 +90,4 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-    // System ui controller
-    implementation (libs.accompanist.systemuicontroller)
 }
