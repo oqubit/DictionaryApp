@@ -148,26 +148,26 @@ fun MyScreen(
                 .padding(horizontal = 30.dp)
         ) {
             state.wordItem?.let { wordItem ->
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = if (state.showError) stringResource(R.string.hmm) else wordItem.word,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(5.dp))
                 Text(
                     text = if (state.showError) state.errorMessage else wordItem.phonetic,
                     fontSize = 17.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
         }
 
         Box(
             modifier = Modifier
-                .padding(top = 110.dp)
+                .padding(top = 90.dp)
                 .fillMaxSize()
                 .clip(
                     RoundedCornerShape(
@@ -294,8 +294,8 @@ class MyPreviewParamsProvider: PreviewParameterProvider<PreviewParams> {
         get() = sequenceOf(
             PreviewParams(isLoading = false, showError = false),
             PreviewParams(isLoading = false, showError = true),
-            PreviewParams(isLoading = true, showError = false),
-            PreviewParams(isLoading = true, showError = true)
+            // PreviewParams(isLoading = true, showError = false),
+            // PreviewParams(isLoading = true, showError = true)
         )
 }
 @Preview(

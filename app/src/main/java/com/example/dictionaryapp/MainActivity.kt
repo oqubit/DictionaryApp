@@ -34,15 +34,16 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun BarColor() {
-        val color = MaterialTheme.colorScheme.background.toArgb()
         val isDarkTheme = isSystemInDarkTheme()
+        val color = MaterialTheme.colorScheme.background.toArgb()
+        val colorDark = MaterialTheme.colorScheme.primary.toArgb()
         LaunchedEffect(isDarkTheme) {
             enableEdgeToEdge(
                 statusBarStyle =
                 if (isDarkTheme)
                     SystemBarStyle.dark(color)
                 else
-                    SystemBarStyle.light(color, color)
+                    SystemBarStyle.light(color, colorDark)
             )
         }
     }
