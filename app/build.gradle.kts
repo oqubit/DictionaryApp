@@ -69,6 +69,9 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    // Material Icons
+    implementation(libs.androidx.compose.material.icons.extended)
+
     // Retrofit
     implementation(libs.retrofit)
     implementation(libs.converter.gson)

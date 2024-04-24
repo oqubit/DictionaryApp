@@ -33,9 +33,21 @@ class MainViewModel @Inject constructor(
     fun onEvent(mainUiEvent: MainUiEvents) {
         when (mainUiEvent) {
             MainUiEvents.OnSearchClick -> {
+                val searchedWord = mainState.value.searchWord
+                if (searchedWord.isBlank()) {
+                    return
+                }
+                if (searchedWord.equals(mainState.value.lastSearchedWord, ignoreCase = true)) {
+                    return
+                }
                 searchJob?.cancel()
                 searchJob = viewModelScope.launch {
                     searchWord()
+                }
+                _mainState.update {
+                    it.copy(
+                        lastSearchedWord = searchedWord
+                    )
                 }
             }
 
@@ -51,15 +63,15 @@ class MainViewModel @Inject constructor(
 
     private fun setPreWordLoadMainState() {
         _mainState.update {
-            it.copy(
-                isLoading = true,
-                errorOccurred = false
-            )
+           it.copy(
+               isLoading = true
+           )
         }
     }
 
     private suspend fun searchWord() {
         setPreWordLoadMainState()
+        // delay(800)
         dictionaryRepository.getWordResult(
             mainState.value.searchWord.lowercase()
         ).collect { result ->
@@ -68,9 +80,8 @@ class MainViewModel @Inject constructor(
                     result.message?.let { err ->
                         _mainState.update {
                             it.copy(
-                                errorOccurred = true,
-                                errorMessage = err,
                                 showError = true,
+                                errorMessage = err,
                                 isLoading = false
                             )
                         }

@@ -1,7 +1,9 @@
 package com.example.dictionaryapp.presentation
 
 import android.content.res.Configuration
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,10 +19,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -29,34 +33,35 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewFontScale
-import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dictionaryapp.R
 import com.example.dictionaryapp.domain.model.Definition
 import com.example.dictionaryapp.domain.model.Meaning
 import com.example.dictionaryapp.domain.model.WordItem
+import com.example.dictionaryapp.presentation.util.calcWordSimilarityScore
+import com.example.dictionaryapp.presentation.util.keyboardAsState
 import com.example.dictionaryapp.ui.theme.DictionaryAppTheme
 
 @Composable
@@ -67,16 +72,9 @@ fun MainScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            LaunchedEffect(key1 = state.errorOccurred) {
-                if (state.errorOccurred) {
-                    keyboardController?.show()
-                    focusRequester.requestFocus()
-                }
-            }
             OutlinedTextField(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -124,20 +122,107 @@ fun MainScreen(
                 )
             )
         }
-
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = paddingValues.calculateTopPadding())
         ) {
-            MyScreen(state)
+            WordScreen(state)
+            HistoryList(
+                searchWord = state.searchWord,
+                onEvent = onEvent,
+                keyboardController = keyboardController,
+                focusManager = focusManager
+            )
         }
     }
 }
 
 @Composable
-fun MyScreen(
+fun HistoryList(
+    searchWord: String,
+    onEvent: (MainUiEvents) -> Unit,
+    keyboardController: SoftwareKeyboardController?,
+    focusManager: FocusManager
+) {
+    val isKeyboardOpen by keyboardAsState()
+    if (!isKeyboardOpen) {
+        return
+    }
+    val searchHistoryList = listOf(
+        "Greetings",
+        "Welcome",
+        "Hello",
+        "Doggo",
+        "Beep",
+        "Foo",
+        "New"
+    )
+    Box(
+        modifier = Modifier
+            .padding(
+                horizontal = 16.dp
+            )
+            .clip(RoundedCornerShape(7.dp))
+            .background(color = MaterialTheme.colorScheme.background)
+            .background(
+                brush = Brush.verticalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.secondaryContainer.copy(0.2f)
+                    )
+                )
+            )
+            .border(
+                border = BorderStroke(
+                    width = 3.dp,
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.primary.copy(0.3f)
+                        )
+                    )
+                ),
+                shape = RoundedCornerShape(7.dp)
+            )
+    ) {
+        Spacer(modifier = Modifier.height(5.dp))
+        LazyColumn {
+            items(
+                items = searchHistoryList.sortedByDescending {
+                    calcWordSimilarityScore(it, searchWord)
+                }.take(5),
+                key = { it }
+            ) { item ->
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 17.dp, vertical = 7.dp)
+                        .fillMaxWidth()
+                        .clickable {
+                            onEvent(MainUiEvents.OnSearchWordChange(item))
+                            onEvent(MainUiEvents.OnSearchClick)
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+                        }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        modifier = Modifier.padding(end = 8.dp),
+                        contentDescription = ""
+                    )
+                    Text(
+                        text = item,
+                        fontSize = 19.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WordScreen(
     state: MainState
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -164,7 +249,6 @@ fun MyScreen(
                 Spacer(modifier = Modifier.height(10.dp))
             }
         }
-
         Box(
             modifier = Modifier
                 .padding(top = 90.dp)
@@ -204,7 +288,7 @@ fun WordResult(wordItem: WordItem) {
         contentPadding = PaddingValues(vertical = 32.dp)
     ) {
         items(wordItem.meanings.size) { index ->
-            Meaning(
+            WordMeaning(
                 meaning = wordItem.meanings[index],
                 index = index
             )
@@ -214,7 +298,7 @@ fun WordResult(wordItem: WordItem) {
 }
 
 @Composable
-fun Meaning(
+fun WordMeaning(
     meaning: Meaning,
     index: Int
 ) {
@@ -289,7 +373,8 @@ data class PreviewParams(
     val isLoading: Boolean,
     val showError: Boolean
 )
-class MyPreviewParamsProvider: PreviewParameterProvider<PreviewParams> {
+
+class MyPreviewParamsProvider : PreviewParameterProvider<PreviewParams> {
     override val values: Sequence<PreviewParams>
         get() = sequenceOf(
             PreviewParams(isLoading = false, showError = false),
@@ -298,6 +383,7 @@ class MyPreviewParamsProvider: PreviewParameterProvider<PreviewParams> {
             // PreviewParams(isLoading = true, showError = true)
         )
 }
+
 @Preview(
     fontScale = 1f,
     uiMode = Configuration.UI_MODE_NIGHT_YES

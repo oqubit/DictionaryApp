@@ -3,10 +3,10 @@ package com.example.dictionaryapp.presentation
 import com.example.dictionaryapp.domain.model.WordItem
 
 data class MainState (
-    val isLoading: Boolean = true,
-    val errorOccurred: Boolean = false,
-    val showError: Boolean = false,
-    val errorMessage: String = "",
+    val wordItem: WordItem? = null,
     val searchWord: String = "Welcome",
-    val wordItem: WordItem? = null
+    val lastSearchedWord: String = "",
+    val errorMessage: String = "",
+    val isLoading: Boolean = true,
+    val showError: Boolean = false
 )
