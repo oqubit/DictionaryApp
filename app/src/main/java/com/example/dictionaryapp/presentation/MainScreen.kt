@@ -1,6 +1,13 @@
 package com.example.dictionaryapp.presentation
 
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,6 +40,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -60,7 +68,6 @@ import com.example.dictionaryapp.R
 import com.example.dictionaryapp.domain.model.Definition
 import com.example.dictionaryapp.domain.model.Meaning
 import com.example.dictionaryapp.domain.model.WordItem
-import com.example.dictionaryapp.presentation.util.calcWordSimilarityScore
 import com.example.dictionaryapp.presentation.util.keyboardAsState
 import com.example.dictionaryapp.ui.theme.DictionaryAppTheme
 
@@ -90,7 +97,7 @@ fun MainScreen(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = {
-                        onEvent(MainUiEvents.OnSearchClick)
+                        onEvent(MainUiEvents.OnSearchClick())
                         keyboardController?.hide()
                         focusManager.clearFocus()
                     }
@@ -103,7 +110,7 @@ fun MainScreen(
                         modifier = Modifier
                             .size(30.dp)
                             .clickable {
-                                onEvent(MainUiEvents.OnSearchClick)
+                                onEvent(MainUiEvents.OnSearchClick())
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
                             }
@@ -130,7 +137,8 @@ fun MainScreen(
         ) {
             WordScreen(state)
             HistoryList(
-                searchWord = state.searchWord,
+                searchHistoryList = state.searchHistoryList,
+                shouldResortHistory = state.shouldReSortHistoryList,
                 onEvent = onEvent,
                 keyboardController = keyboardController,
                 focusManager = focusManager
@@ -141,80 +149,84 @@ fun MainScreen(
 
 @Composable
 fun HistoryList(
-    searchWord: String,
+    searchHistoryList: List<String>,
+    shouldResortHistory: Boolean,
     onEvent: (MainUiEvents) -> Unit,
     keyboardController: SoftwareKeyboardController?,
     focusManager: FocusManager
 ) {
     val isKeyboardOpen by keyboardAsState()
-    if (!isKeyboardOpen) {
-        return
+    LaunchedEffect(isKeyboardOpen) {
+        if (isKeyboardOpen && shouldResortHistory) {
+            onEvent(MainUiEvents.ReSortHistoryList)
+        }
     }
-    val searchHistoryList = listOf(
-        "Greetings",
-        "Welcome",
-        "Hello",
-        "Doggo",
-        "Beep",
-        "Foo",
-        "New"
-    )
-    Box(
-        modifier = Modifier
-            .padding(
-                horizontal = 16.dp
-            )
-            .clip(RoundedCornerShape(7.dp))
-            .background(color = MaterialTheme.colorScheme.background)
-            .background(
-                brush = Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.secondaryContainer.copy(0.2f)
-                    )
+    AnimatedVisibility(
+        visible = isKeyboardOpen,
+        enter = expandVertically(
+            expandFrom = Alignment.Top,
+            animationSpec = spring(stiffness = Spring.StiffnessMedium)
+        ) + fadeIn(
+            initialAlpha = 0.2f,
+            animationSpec = spring(stiffness = Spring.StiffnessMedium)
+        ),
+        exit = shrinkVertically() + fadeOut()
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(
+                    horizontal = 16.dp
                 )
-            )
-            .border(
-                border = BorderStroke(
-                    width = 3.dp,
+                .clip(RoundedCornerShape(7.dp))
+                .background(color = MaterialTheme.colorScheme.background)
+                .background(
                     brush = Brush.verticalGradient(
                         listOf(
                             MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(0.3f)
+                            MaterialTheme.colorScheme.secondaryContainer.copy(0.2f)
                         )
                     )
-                ),
-                shape = RoundedCornerShape(7.dp)
-            )
-    ) {
-        Spacer(modifier = Modifier.height(5.dp))
-        LazyColumn {
-            items(
-                items = searchHistoryList.sortedByDescending {
-                    calcWordSimilarityScore(it, searchWord)
-                }.take(5),
-                key = { it }
-            ) { item ->
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 17.dp, vertical = 7.dp)
-                        .fillMaxWidth()
-                        .clickable {
-                            onEvent(MainUiEvents.OnSearchWordChange(item))
-                            onEvent(MainUiEvents.OnSearchClick)
-                            keyboardController?.hide()
-                            focusManager.clearFocus()
-                        }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        modifier = Modifier.padding(end = 8.dp),
-                        contentDescription = ""
-                    )
-                    Text(
-                        text = item,
-                        fontSize = 19.sp
-                    )
+                )
+                .border(
+                    border = BorderStroke(
+                        width = 3.dp,
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.background,
+                                MaterialTheme.colorScheme.primary.copy(0.3f)
+                            )
+                        )
+                    ),
+                    shape = RoundedCornerShape(7.dp)
+                )
+        ) {
+            Spacer(modifier = Modifier.height(5.dp))
+            LazyColumn {
+                items(
+                    items = searchHistoryList.take(5),
+                    key = { it }
+                ) { item ->
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 17.dp, vertical = 7.dp)
+                            .fillMaxWidth()
+                            .clickable {
+                                onEvent(MainUiEvents.OnSearchWordChange(item, false))
+                                onEvent(MainUiEvents.OnSearchClick(true))
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                            }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            modifier = Modifier.padding(end = 8.dp),
+                            contentDescription = ""
+                        )
+                        Text(
+                            text = item,
+                            fontSize = 19.sp
+                        )
+                    }
                 }
             }
         }

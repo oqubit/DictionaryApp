@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dictionaryapp.domain.repository.DictionaryRepository
 import com.example.dictionaryapp.domain.util.MyResult
+import com.example.dictionaryapp.presentation.util.calcWordSimilarityScore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,12 +28,13 @@ class MainViewModel @Inject constructor(
     private var searchJob: Job? = null
 
     init {
-        onEvent(MainUiEvents.OnSearchClick)
+        onEvent(MainUiEvents.OnSearchClick())
+        onEvent(MainUiEvents.ReSortHistoryList)
     }
 
     fun onEvent(mainUiEvent: MainUiEvents) {
         when (mainUiEvent) {
-            MainUiEvents.OnSearchClick -> {
+            is MainUiEvents.OnSearchClick -> {
                 val searchedWord = mainState.value.searchWord
                 if (searchedWord.isBlank()) {
                     return
@@ -46,15 +48,28 @@ class MainViewModel @Inject constructor(
                 }
                 _mainState.update {
                     it.copy(
-                        lastSearchedWord = searchedWord
+                        lastSearchedWord = searchedWord,
+                        shouldReSortHistoryList = mainUiEvent.shouldReSortHistoryListLater
                     )
                 }
             }
 
             is MainUiEvents.OnSearchWordChange -> {
                 _mainState.update {
-                    it.copy(
-                        searchWord = mainUiEvent.newWord
+                    it.copy(searchWord = mainUiEvent.newWord)
+                }
+                if (mainUiEvent.reSortHistoryList) {
+                    onEvent(MainUiEvents.ReSortHistoryList)
+                }
+            }
+
+            MainUiEvents.ReSortHistoryList -> {
+                _mainState.update { state ->
+                    state.copy(
+                        shouldReSortHistoryList = false,
+                        searchHistoryList = state.searchHistoryList.sortedByDescending {
+                            calcWordSimilarityScore(it, state.searchWord)
+                        }
                     )
                 }
             }
@@ -63,9 +78,9 @@ class MainViewModel @Inject constructor(
 
     private fun setPreWordLoadMainState() {
         _mainState.update {
-           it.copy(
-               isLoading = true
-           )
+            it.copy(
+                isLoading = true
+            )
         }
     }
 

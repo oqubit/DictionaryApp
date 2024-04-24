@@ -8,5 +8,15 @@ data class MainState (
     val lastSearchedWord: String = "",
     val errorMessage: String = "",
     val isLoading: Boolean = true,
-    val showError: Boolean = false
+    val showError: Boolean = false,
+    val shouldReSortHistoryList: Boolean = false,
+    val searchHistoryList: List<String> = listOf(
+        "Greetings",
+        "Welcome",
+        "Hello",
+        "Doggo",
+        "Beep",
+        "Foo",
+        "New"
+    )
 )
