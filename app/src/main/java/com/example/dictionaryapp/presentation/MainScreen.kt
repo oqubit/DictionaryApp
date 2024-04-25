@@ -1,7 +1,9 @@
 package com.example.dictionaryapp.presentation
 
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
@@ -74,7 +76,7 @@ import com.example.dictionaryapp.ui.theme.DictionaryAppTheme
 @Composable
 fun MainScreen(
     state: MainState,
-    onEvent: (MainUiEvents) -> Unit
+    onEvent: (MainEvents) -> Unit
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -91,13 +93,13 @@ fun MainScreen(
                 value = state.searchWord,
                 onValueChange = {
                     onEvent(
-                        MainUiEvents.OnSearchWordChange(it)
+                        MainEvents.OnSearchWordChange(it)
                     )
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = {
-                        onEvent(MainUiEvents.OnSearchClick())
+                        onEvent(MainEvents.OnSearchClick())
                         keyboardController?.hide()
                         focusManager.clearFocus()
                     }
@@ -110,7 +112,7 @@ fun MainScreen(
                         modifier = Modifier
                             .size(30.dp)
                             .clickable {
-                                onEvent(MainUiEvents.OnSearchClick())
+                                onEvent(MainEvents.OnSearchClick())
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
                             }
@@ -151,18 +153,25 @@ fun MainScreen(
 fun HistoryList(
     searchHistoryList: List<String>,
     shouldResortHistory: Boolean,
-    onEvent: (MainUiEvents) -> Unit,
+    onEvent: (MainEvents) -> Unit,
     keyboardController: SoftwareKeyboardController?,
     focusManager: FocusManager
 ) {
     val isKeyboardOpen by keyboardAsState()
+    val animVisibleState = remember { MutableTransitionState(false) }
+
     LaunchedEffect(isKeyboardOpen) {
-        if (isKeyboardOpen && shouldResortHistory) {
-            onEvent(MainUiEvents.ReSortHistoryList)
-        }
+        animVisibleState.targetState = isKeyboardOpen
     }
+
+    val animationEnded = animVisibleState.isIdle && !animVisibleState.currentState
+    if (animationEnded && shouldResortHistory) {
+        onEvent(MainEvents.ReSortHistoryList)
+        Log.d("OnBoxCloseAnimationEnd", "OnBoxCloseAnimationEnd ticked!")
+    }
+
     AnimatedVisibility(
-        visible = isKeyboardOpen,
+        visibleState = animVisibleState,
         enter = expandVertically(
             expandFrom = Alignment.Top,
             animationSpec = spring(stiffness = Spring.StiffnessMedium)
@@ -211,8 +220,8 @@ fun HistoryList(
                             .padding(horizontal = 17.dp, vertical = 7.dp)
                             .fillMaxWidth()
                             .clickable {
-                                onEvent(MainUiEvents.OnSearchWordChange(item, false))
-                                onEvent(MainUiEvents.OnSearchClick(true))
+                                onEvent(MainEvents.OnSearchWordChange(item, false))
+                                onEvent(MainEvents.OnSearchClick(true))
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
                             }
@@ -244,22 +253,7 @@ fun WordScreen(
                 .height(100.dp)
                 .padding(horizontal = 30.dp)
         ) {
-            state.wordItem?.let { wordItem ->
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = if (state.showError) stringResource(R.string.hmm) else wordItem.word,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(5.dp))
-                Text(
-                    text = if (state.showError) state.errorMessage else wordItem.phonetic,
-                    fontSize = 17.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+            WordResultTitle(state = state)
         }
         Box(
             modifier = Modifier
@@ -287,7 +281,7 @@ fun WordScreen(
                 )
             } else if (!state.showError) {
                 state.wordItem?.let { wordItem ->
-                    WordResult(wordItem)
+                    WordResultBody(wordItem)
                 }
             }
         }
@@ -295,7 +289,46 @@ fun WordScreen(
 }
 
 @Composable
-fun WordResult(wordItem: WordItem) {
+fun WordResultTitle(
+    state: MainState
+) {
+    state.wordItem?.let { wordItem ->
+        WordResultTitleText(
+            mainStr = if (state.showError) stringResource(R.string.hmm) else wordItem.word,
+            secondaryStr = if (state.showError) state.errorMessage else wordItem.phonetic,
+        )
+    }
+    if (state.showError && state.wordItem == null) {
+        WordResultTitleText(
+            mainStr = stringResource(R.string.oops),
+            secondaryStr = stringResource(R.string.unable_to_reach_the_server)
+        )
+    }
+}
+
+@Composable
+fun WordResultTitleText(
+    mainStr: String,
+    secondaryStr: String
+) {
+    Spacer(modifier = Modifier.height(10.dp))
+    Text(
+        text = mainStr,
+        fontSize = 30.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary
+    )
+    Spacer(modifier = Modifier.height(5.dp))
+    Text(
+        text = secondaryStr,
+        fontSize = 17.sp,
+        color = MaterialTheme.colorScheme.onBackground
+    )
+    Spacer(modifier = Modifier.height(10.dp))
+}
+
+@Composable
+fun WordResultBody(wordItem: WordItem) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 32.dp)
     ) {

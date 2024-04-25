@@ -28,13 +28,13 @@ class MainViewModel @Inject constructor(
     private var searchJob: Job? = null
 
     init {
-        onEvent(MainUiEvents.OnSearchClick())
-        onEvent(MainUiEvents.ReSortHistoryList)
+        onEvent(MainEvents.OnSearchClick())
+        onEvent(MainEvents.ReSortHistoryList)
     }
 
-    fun onEvent(mainUiEvent: MainUiEvents) {
-        when (mainUiEvent) {
-            is MainUiEvents.OnSearchClick -> {
+    fun onEvent(eventArgs: MainEvents) {
+        when (eventArgs) {
+            is MainEvents.OnSearchClick -> {
                 val searchedWord = mainState.value.searchWord
                 if (searchedWord.isBlank()) {
                     return
@@ -49,28 +49,30 @@ class MainViewModel @Inject constructor(
                 _mainState.update {
                     it.copy(
                         lastSearchedWord = searchedWord,
-                        shouldReSortHistoryList = mainUiEvent.shouldReSortHistoryListLater
+                        shouldReSortHistoryList = eventArgs.shouldReSortHistoryListLater
                     )
                 }
             }
 
-            is MainUiEvents.OnSearchWordChange -> {
+            is MainEvents.OnSearchWordChange -> {
                 _mainState.update {
-                    it.copy(searchWord = mainUiEvent.newWord)
+                    it.copy(searchWord = eventArgs.newWord)
                 }
-                if (mainUiEvent.reSortHistoryList) {
-                    onEvent(MainUiEvents.ReSortHistoryList)
+                if (eventArgs.reSortHistoryList) {
+                    onEvent(MainEvents.ReSortHistoryList)
                 }
             }
 
-            MainUiEvents.ReSortHistoryList -> {
-                _mainState.update { state ->
-                    state.copy(
-                        shouldReSortHistoryList = false,
-                        searchHistoryList = state.searchHistoryList.sortedByDescending {
-                            calcWordSimilarityScore(it, state.searchWord)
-                        }
-                    )
+            MainEvents.ReSortHistoryList -> {
+                viewModelScope.launch {
+                    _mainState.update { state ->
+                        state.copy(
+                            shouldReSortHistoryList = false,
+                            searchHistoryList = state.searchHistoryList.sortedByDescending {
+                                calcWordSimilarityScore(it, state.searchWord)
+                            }
+                        )
+                    }
                 }
             }
         }
