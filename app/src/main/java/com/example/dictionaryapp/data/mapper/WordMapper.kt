@@ -16,13 +16,11 @@ fun WordItemDto.toWordItem() = WordItem (
 )
 
 fun MeaningDto.toMeaning() = Meaning(
-    definition = definitionDtoToDefinition(definitions?.get(0)),
+    definition = definitions?.get(0).toDefinition(),
     partOfSpeech = partOfSpeech ?: ""
 )
 
-fun definitionDtoToDefinition(
-    definitionDto: DefinitionDto?
-) = Definition (
-    definition = definitionDto?.definition ?: "",
-    example = definitionDto?.example ?: ""
+fun DefinitionDto?.toDefinition() = Definition(
+    definition = this?.definition ?: "",
+    example = this?.example ?: ""
 )
