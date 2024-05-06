@@ -10,13 +10,5 @@ data class MainState (
     val isLoading: Boolean = true,
     val showError: Boolean = false,
     val shouldReSortHistoryList: Boolean = false,
-    val searchHistoryList: List<String> = listOf(
-        "Greetings",
-        "Welcome",
-        "Hello",
-        "Doggo",
-        "Beep",
-        "Foo",
-        "New"
-    )
+    val searchHistoryList: List<String> = emptyList()
 )

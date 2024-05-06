@@ -99,7 +99,7 @@ fun MainScreen(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = {
-                        onEvent(MainEvents.OnSearchClick())
+                        onEvent(MainEvents.OnSearchClick)
                         keyboardController?.hide()
                         focusManager.clearFocus()
                     }
@@ -112,7 +112,7 @@ fun MainScreen(
                         modifier = Modifier
                             .size(30.dp)
                             .clickable {
-                                onEvent(MainEvents.OnSearchClick())
+                                onEvent(MainEvents.OnSearchClick)
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
                             }
@@ -166,8 +166,8 @@ fun HistoryList(
 
     val animationEnded = animVisibleState.isIdle && !animVisibleState.currentState
     if (animationEnded && shouldResortHistory) {
-        onEvent(MainEvents.ReSortHistoryList)
-        Log.d("OnBoxCloseAnimationEnd", "OnBoxCloseAnimationEnd ticked!")
+        Log.v("MainScreen", "UI-Tick: OnBoxCloseAnimationEnd ticked!")
+        onEvent(MainEvents.UpdateAndReSortSearchHistoryList)
     }
 
     AnimatedVisibility(
@@ -221,7 +221,7 @@ fun HistoryList(
                             .fillMaxWidth()
                             .clickable {
                                 onEvent(MainEvents.OnSearchWordChange(item, false))
-                                onEvent(MainEvents.OnSearchClick(true))
+                                onEvent(MainEvents.OnSearchClick)
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
                             }

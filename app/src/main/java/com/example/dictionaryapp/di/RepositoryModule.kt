@@ -1,7 +1,9 @@
 package com.example.dictionaryapp.di
 
 import com.example.dictionaryapp.data.repository.DictionaryRepositoryImpl
+import com.example.dictionaryapp.data.repository.SearchHistoryRepositoryImpl
 import com.example.dictionaryapp.domain.repository.DictionaryRepository
+import com.example.dictionaryapp.domain.repository.SearchHistoryRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -16,4 +18,9 @@ abstract class RepositoryModule {
     abstract fun bindDictionaryRepository(
         dictionaryRepositoryImpl: DictionaryRepositoryImpl
     ): DictionaryRepository
+
+    @Binds
+    abstract fun bindSearchHistoryRepository(
+        searchHistoryRepositoryImpl: SearchHistoryRepositoryImpl
+    ): SearchHistoryRepository
 }

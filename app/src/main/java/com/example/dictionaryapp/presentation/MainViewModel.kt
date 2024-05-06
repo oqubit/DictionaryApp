@@ -1,8 +1,11 @@
 package com.example.dictionaryapp.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dictionaryapp.domain.model.HistoryEntity
 import com.example.dictionaryapp.domain.repository.DictionaryRepository
+import com.example.dictionaryapp.domain.repository.SearchHistoryRepository
 import com.example.dictionaryapp.domain.util.MyResult
 import com.example.dictionaryapp.presentation.util.calcWordSimilarityScore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +18,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val dictionaryRepository: DictionaryRepository
+    private val dictionaryRepo: DictionaryRepository,
+    private val historyRepo: SearchHistoryRepository
 ) : ViewModel() {
 
     companion object {
@@ -28,43 +32,56 @@ class MainViewModel @Inject constructor(
     private var searchJob: Job? = null
 
     init {
-        onEvent(MainEvents.OnSearchClick())
-        onEvent(MainEvents.ReSortHistoryList)
+        Log.v(TAG, "ViewModel: Init ticked")
+        onSearchClick(isVmInitCall = true)
+    }
+
+    private fun onSearchClick(isVmInitCall: Boolean = false) {
+        Log.v(TAG, "Called: onSearchClick()")
+        val searchedWord = mainState.value.searchWord
+        if (searchedWord.isBlank()) {
+            return
+        }
+        if (searchedWord.equals(mainState.value.lastSearchedWord, ignoreCase = true)) {
+            return
+        }
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            historyRepo.addHistoryEntity(HistoryEntity(searchedWord))
+            _mainState.update { state ->
+                state.copy(
+                    lastSearchedWord = searchedWord,
+                    shouldReSortHistoryList = !isVmInitCall
+                )
+            }
+            if (isVmInitCall) {
+                updateAndResortSearchHistoryList()
+            }
+            searchWord()
+        }
     }
 
     fun onEvent(eventArgs: MainEvents) {
         when (eventArgs) {
-            is MainEvents.OnSearchClick -> {
-                val searchedWord = mainState.value.searchWord
-                if (searchedWord.isBlank()) {
-                    return
-                }
-                if (searchedWord.equals(mainState.value.lastSearchedWord, ignoreCase = true)) {
-                    return
-                }
-                searchJob?.cancel()
-                searchJob = viewModelScope.launch {
-                    searchWord()
-                }
-                _mainState.update {
-                    it.copy(
-                        lastSearchedWord = searchedWord,
-                        shouldReSortHistoryList = eventArgs.shouldReSortHistoryListLater
-                    )
-                }
+            MainEvents.OnSearchClick -> {
+                Log.v(TAG, "Event: OnSearchClick ticked")
+                onSearchClick()
             }
 
             is MainEvents.OnSearchWordChange -> {
+                Log.v(TAG, "Event: OnSearchWordChange ticked")
                 _mainState.update {
                     it.copy(searchWord = eventArgs.newWord)
                 }
                 if (eventArgs.reSortHistoryList) {
-                    onEvent(MainEvents.ReSortHistoryList)
+                    onEvent(MainEvents.ReSortSearchHistoryList)
                 }
             }
 
-            MainEvents.ReSortHistoryList -> {
+            MainEvents.ReSortSearchHistoryList -> {
+                Log.v(TAG, "Event: ReSortSearchHistoryList ticked")
                 viewModelScope.launch {
+                    Log.v(TAG, "Called: ReSortSearchHistoryList")
                     _mainState.update { state ->
                         state.copy(
                             shouldReSortHistoryList = false,
@@ -75,6 +92,31 @@ class MainViewModel @Inject constructor(
                     }
                 }
             }
+
+            MainEvents.UpdateAndReSortSearchHistoryList -> {
+                Log.v(TAG, "Event: UpdateAndReSortSearchHistoryList ticked")
+                viewModelScope.launch {
+                    updateAndResortSearchHistoryList()
+                }
+            }
+        }
+    }
+
+    private suspend fun updateAndResortSearchHistoryList() {
+        Log.v(TAG, "Called: updateAndResortSearchHistoryList()")
+        val searchHistoryList = historyRepo.getSearchHistoryList()
+        _mainState.update { state ->
+            state.copy(
+                searchHistoryList = searchHistoryList.map { it.searchedWord }
+            )
+        }
+        _mainState.update { state ->
+            state.copy(
+                shouldReSortHistoryList = false,
+                searchHistoryList = state.searchHistoryList.sortedByDescending {
+                    calcWordSimilarityScore(it, state.searchWord)
+                }
+            )
         }
     }
 
@@ -87,9 +129,10 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun searchWord() {
+        Log.v(TAG, "Called: searchWord()")
         setPreWordLoadMainState()
-        // delay(800)
-        dictionaryRepository.getWordResult(
+        // delay(1000)
+        dictionaryRepo.getWordResult(
             mainState.value.searchWord.lowercase()
         ).collect { result ->
             when (result) {

@@ -1,9 +1,14 @@
 package com.example.dictionaryapp.di
 
+import android.content.Context
+import androidx.room.Room
 import com.example.dictionaryapp.data.api.DictionaryApi
+import com.example.dictionaryapp.data.dao.HistoryDao
+import com.example.dictionaryapp.data.database.SearchHistoryDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -34,4 +39,19 @@ object MainModule {
             .build()
             .create()
     }
+
+    @Provides
+    @Singleton
+    fun providesSearchHistoryDatabase(
+        @ApplicationContext context: Context
+    ): SearchHistoryDatabase = Room.databaseBuilder(
+        context,
+        SearchHistoryDatabase::class.java,
+        SearchHistoryDatabase.DATABASE_NAME
+    ).build()
+
+    @Provides
+    fun providesHistoryDao(
+        database: SearchHistoryDatabase
+    ): HistoryDao = database.historyDao()
 }
