@@ -3,12 +3,14 @@ package com.example.dictionaryapp.presentation
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dictionaryapp.di.IoDispatcher
 import com.example.dictionaryapp.domain.model.HistoryEntity
 import com.example.dictionaryapp.domain.repository.DictionaryRepository
 import com.example.dictionaryapp.domain.repository.SearchHistoryRepository
 import com.example.dictionaryapp.domain.util.MyResult
 import com.example.dictionaryapp.presentation.util.calcWordSimilarityScore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val dictionaryRepo: DictionaryRepository,
-    private val historyRepo: SearchHistoryRepository
+    private val historyRepo: SearchHistoryRepository,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     companion object {
@@ -46,7 +49,7 @@ class MainViewModel @Inject constructor(
             return
         }
         searchJob?.cancel()
-        searchJob = viewModelScope.launch {
+        searchJob = viewModelScope.launch(ioDispatcher) {
             historyRepo.addHistoryEntity(HistoryEntity(searchedWord))
             _mainState.update { state ->
                 state.copy(
@@ -80,7 +83,7 @@ class MainViewModel @Inject constructor(
 
             MainEvents.ReSortSearchHistoryList -> {
                 Log.v(TAG, "Event: ReSortSearchHistoryList ticked")
-                viewModelScope.launch {
+                viewModelScope.launch(ioDispatcher) {
                     Log.v(TAG, "Called: ReSortSearchHistoryList")
                     _mainState.update { state ->
                         state.copy(
@@ -95,7 +98,7 @@ class MainViewModel @Inject constructor(
 
             MainEvents.UpdateAndReSortSearchHistoryList -> {
                 Log.v(TAG, "Event: UpdateAndReSortSearchHistoryList ticked")
-                viewModelScope.launch {
+                viewModelScope.launch(ioDispatcher) {
                     updateAndResortSearchHistoryList()
                 }
             }
