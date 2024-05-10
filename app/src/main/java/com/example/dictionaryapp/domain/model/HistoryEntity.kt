@@ -5,6 +5,6 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "search_history")
 data class HistoryEntity(
-    @PrimaryKey
-    val searchedWord: String = "NULL"
+    @PrimaryKey val searchedWord: String = "NULL",
+    val timestamp: Long
 )

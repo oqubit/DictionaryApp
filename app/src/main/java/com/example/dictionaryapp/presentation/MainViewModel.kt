@@ -3,6 +3,7 @@ package com.example.dictionaryapp.presentation
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dictionaryapp.data.mapper.toStringList
 import com.example.dictionaryapp.di.IoDispatcher
 import com.example.dictionaryapp.domain.model.HistoryEntity
 import com.example.dictionaryapp.domain.repository.DictionaryRepository
@@ -50,14 +51,17 @@ class MainViewModel @Inject constructor(
         }
         searchJob?.cancel()
         searchJob = viewModelScope.launch(ioDispatcher) {
-            historyRepo.addHistoryEntity(HistoryEntity(searchedWord))
             _mainState.update { state ->
                 state.copy(
                     lastSearchedWord = searchedWord,
                     shouldReSortHistoryList = !isVmInitCall
                 )
             }
-            if (isVmInitCall) {
+            val historyEntity = HistoryEntity(searchedWord, System.currentTimeMillis())
+            if (!isVmInitCall) {
+                historyRepo.addHistoryEntity(historyEntity)
+            } else {
+                historyRepo.initHistoryEntity(historyEntity)
                 updateAndResortSearchHistoryList()
             }
             searchWord()
@@ -88,8 +92,13 @@ class MainViewModel @Inject constructor(
                     _mainState.update { state ->
                         state.copy(
                             shouldReSortHistoryList = false,
-                            searchHistoryList = state.searchHistoryList.sortedByDescending {
-                                calcWordSimilarityScore(it, state.searchWord)
+                            searchHistoryList =
+                            if (state.searchWord.isNotEmpty()) {
+                                state.searchHistoryList.sortedByDescending {
+                                    calcWordSimilarityScore(it, state.searchWord)
+                                }
+                            } else {
+                                historyRepo.getSearchHistoryListByRecent().toStringList()
                             }
                         )
                     }
@@ -107,10 +116,9 @@ class MainViewModel @Inject constructor(
 
     private suspend fun updateAndResortSearchHistoryList() {
         Log.v(TAG, "Called: updateAndResortSearchHistoryList()")
-        val searchHistoryList = historyRepo.getSearchHistoryList()
         _mainState.update { state ->
             state.copy(
-                searchHistoryList = searchHistoryList.map { it.searchedWord }
+                searchHistoryList = historyRepo.getSearchHistoryList().toStringList()
             )
         }
         _mainState.update { state ->

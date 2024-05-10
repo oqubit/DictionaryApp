@@ -12,6 +12,10 @@ class SearchHistoryRepositoryImpl @Inject constructor(
         dao.addHistoryEntity(historyEntity)
     }
 
+    override suspend fun initHistoryEntity(historyEntity: HistoryEntity) {
+        dao.initHistoryEntity(historyEntity)
+    }
+
     override suspend fun deleteHistoryEntity(historyEntity: HistoryEntity) {
         dao.deleteHistoryEntity(historyEntity)
     }
@@ -22,5 +26,9 @@ class SearchHistoryRepositoryImpl @Inject constructor(
 
     override suspend fun getSearchHistoryList(): List<HistoryEntity> {
         return dao.getSearchHistoryList()
+    }
+
+    override suspend fun getSearchHistoryListByRecent(): List<HistoryEntity> {
+        return dao.getSearchHistoryListByRecent()
     }
 }
