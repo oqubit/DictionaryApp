@@ -5,4 +5,6 @@ sealed class MainEvents {
     data object OnSearchClick : MainEvents()
     data object UpdateAndReSortSearchHistoryList: MainEvents()
     data object ReSortSearchHistoryList: MainEvents()
+    data class OnSearchHistoryLongPressOpen(val wordToDelete: String) : MainEvents()
+    data class OnSearchHistoryLongPressClose(val canDelete: Boolean = false): MainEvents()
 }

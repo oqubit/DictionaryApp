@@ -111,6 +111,35 @@ class MainViewModel @Inject constructor(
                     updateAndResortSearchHistoryList()
                 }
             }
+
+            is MainEvents.OnSearchHistoryLongPressOpen -> {
+                Log.v(TAG, "Event: OnSearchHistoryLongPressOpen ticked")
+                _mainState.update {
+                    it.copy(
+                        showSearchHistoryDialogBox = true,
+                        wordToDelete = eventArgs.wordToDelete
+                    )
+                }
+            }
+
+            is MainEvents.OnSearchHistoryLongPressClose -> {
+                Log.v(TAG, "Event: OnSearchHistoryLongPressClose ticked")
+                viewModelScope.launch(ioDispatcher) {
+                    if (eventArgs.canDelete) {
+                        Log.v(TAG, "Called: Delete a search history item")
+                        historyRepo.deleteHistoryEntity(
+                            HistoryEntity(mainState.value.wordToDelete, 0)
+                        )
+                        updateAndResortSearchHistoryList()
+                    }
+                    _mainState.update {
+                        it.copy(
+                            showSearchHistoryDialogBox = false,
+                            wordToDelete = ""
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -142,7 +171,6 @@ class MainViewModel @Inject constructor(
     private suspend fun searchWord() {
         Log.v(TAG, "Called: searchWord()")
         setPreWordLoadMainState()
-        // delay(1000)
         dictionaryRepo.getWordResult(
             mainState.value.searchWord.lowercase()
         ).collect { result ->

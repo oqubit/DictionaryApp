@@ -11,9 +11,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,12 +37,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,13 +58,18 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -145,10 +154,62 @@ fun MainScreen(
                 keyboardController = keyboardController,
                 focusManager = focusManager
             )
+            SearchHistoryDialogBox(
+                showDialogBox = state.showSearchHistoryDialogBox,
+                wordToDelete = state.wordToDelete,
+                onEvent = onEvent
+            )
         }
     }
 }
 
+@Composable
+fun SearchHistoryDialogBox(
+    showDialogBox: Boolean,
+    wordToDelete: String,
+    onEvent: (MainEvents) -> Unit
+) {
+    if (!showDialogBox) {
+        return
+    }
+
+    AlertDialog(
+        text = {
+            Text(
+                buildAnnotatedString {
+                    append("Delete")
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.SemiBold)) {
+                        append(" \"$wordToDelete\" ")
+                    }
+                    append("from the search history?")
+                }
+            )
+        },
+        onDismissRequest = {
+            onEvent(MainEvents.OnSearchHistoryLongPressClose(canDelete = false))
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onEvent(MainEvents.OnSearchHistoryLongPressClose(canDelete = true))
+                }
+            ) {
+                Text("Confirm")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    onEvent(MainEvents.OnSearchHistoryLongPressClose(canDelete = false))
+                }
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HistoryList(
     searchHistoryList: List<String>,
@@ -159,6 +220,7 @@ fun HistoryList(
 ) {
     val isKeyboardOpen by keyboardAsState()
     val animVisibleState = remember { MutableTransitionState(false) }
+    val haptics = LocalHapticFeedback.current
 
     LaunchedEffect(isKeyboardOpen) {
         animVisibleState.targetState = isKeyboardOpen
@@ -219,12 +281,18 @@ fun HistoryList(
                         modifier = Modifier
                             .padding(horizontal = 17.dp, vertical = 7.dp)
                             .fillMaxWidth()
-                            .clickable {
-                                onEvent(MainEvents.OnSearchWordChange(item, false))
-                                onEvent(MainEvents.OnSearchClick)
-                                keyboardController?.hide()
-                                focusManager.clearFocus()
-                            }
+                            .combinedClickable(
+                                onClick = {
+                                    onEvent(MainEvents.OnSearchWordChange(item, false))
+                                    onEvent(MainEvents.OnSearchClick)
+                                    keyboardController?.hide()
+                                    focusManager.clearFocus()
+                                },
+                                onLongClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onEvent(MainEvents.OnSearchHistoryLongPressOpen(item))
+                                }
+                            )
                     ) {
                         Icon(
                             imageVector = Icons.Default.History,
