@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -63,6 +64,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -146,7 +148,7 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(top = paddingValues.calculateTopPadding())
         ) {
-            WordScreen(state)
+            WordScreen(state, onEvent)
             HistoryList(
                 searchHistoryList = state.searchHistoryList,
                 shouldResortHistory = state.shouldReSortHistoryList,
@@ -312,17 +314,19 @@ fun HistoryList(
 
 @Composable
 fun WordScreen(
-    state: MainState
+    state: MainState,
+    onEvent: (MainEvents) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-                .padding(horizontal = 30.dp)
-        ) {
-            WordResultTitle(state = state)
-        }
+        // Column(
+        //     modifier = Modifier
+        //         .fillMaxWidth()
+        //         .height(100.dp)
+        //         .padding(horizontal = 30.dp)
+        // ) {
+        //     WordResultTitle(state = state)
+        // }
+        WordResultTitle(state = state, onEvent = onEvent)
         Box(
             modifier = Modifier
                 .padding(top = 90.dp)
@@ -358,19 +362,93 @@ fun WordScreen(
 
 @Composable
 fun WordResultTitle(
-    state: MainState
+    state: MainState,
+    onEvent: (MainEvents) -> Unit
 ) {
-    state.wordItem?.let { wordItem ->
-        WordResultTitleText(
-            mainStr = if (state.showError) stringResource(R.string.hmm) else wordItem.word,
-            secondaryStr = if (state.showError) state.errorMessage else wordItem.phonetic,
-        )
+    Row {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .height(100.dp)
+                .padding(horizontal = 30.dp)
+        ) {
+            state.wordItem?.let { wordItem ->
+                WordResultTitleText(
+                    mainStr = if (state.showError) stringResource(R.string.hmm) else wordItem.word,
+                    secondaryStr = if (state.showError) state.errorMessage else wordItem.phonetic,
+                )
+            }
+            if (state.showError && state.wordItem == null) {
+                WordResultTitleText(
+                    mainStr = stringResource(R.string.oops),
+                    secondaryStr = stringResource(R.string.unable_to_reach_the_server)
+                )
+            }
+        }
+        WordAudioPlayButton(state = state, onEvent = onEvent)
     }
-    if (state.showError && state.wordItem == null) {
-        WordResultTitleText(
-            mainStr = stringResource(R.string.oops),
-            secondaryStr = stringResource(R.string.unable_to_reach_the_server)
-        )
+}
+
+@Composable
+fun WordAudioPlayButton(
+    state: MainState,
+    onEvent: (MainEvents) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 30.dp)
+            .padding(top = 10.dp)
+            .border(
+                5.dp, MaterialTheme.colorScheme.secondaryContainer.copy(0.7f),
+                CircleShape
+            )
+            .background(
+                MaterialTheme.colorScheme.secondaryContainer.copy(0.7f),
+                CircleShape
+            )
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    brush = Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(0.75f),
+                            MaterialTheme.colorScheme.secondaryContainer,
+                        )
+                    ), CircleShape
+                )
+                .padding(18.dp)
+                .clickable {
+                    state.wordItem?.let { wordItem ->
+                        if (wordItem.audioUrl.isEmpty()) {
+                            return@clickable
+                        }
+                        onEvent(MainEvents.PlayAudio(wordItem.audioUrl))
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            if (state.isAudioLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .align(Alignment.Center),
+                    color = Color.White
+                )
+                return
+            }
+            Icon(
+                painter =
+                if (state.isAudioPlaying)
+                    painterResource(id = R.drawable.stop)
+                else
+                    painterResource(id = R.drawable.play),
+                contentDescription = "Listen to pronunciation",
+                modifier = Modifier
+                    .size(22.dp),
+                tint = Color.Unspecified
+            )
+        }
     }
 }
 
@@ -518,6 +596,7 @@ private fun MainScreenPreview(
                 wordItem = WordItem(
                     word = "Welcome",
                     phonetic = "/ˈwɛlkəm/",
+                    audioUrl = "",
                     meanings = listOf(
                         Meaning(
                             partOfSpeech = "noun",

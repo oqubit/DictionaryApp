@@ -1,5 +1,7 @@
 package com.example.dictionaryapp.presentation
 
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,6 +42,11 @@ class MainViewModel @Inject constructor(
         onSearchClick(isVmInitCall = true)
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        releaseMediaPlayer()
+    }
+
     private fun onSearchClick(isVmInitCall: Boolean = false) {
         Log.v(TAG, "Called: onSearchClick()")
         val searchedWord = mainState.value.searchWord
@@ -49,6 +56,7 @@ class MainViewModel @Inject constructor(
         if (searchedWord.equals(mainState.value.lastSearchedWord, ignoreCase = true)) {
             return
         }
+        releaseMediaPlayer()
         searchJob?.cancel()
         searchJob = viewModelScope.launch(ioDispatcher) {
             _mainState.update { state ->
@@ -139,6 +147,81 @@ class MainViewModel @Inject constructor(
                         )
                     }
                 }
+            }
+
+            is MainEvents.PlayAudio -> {
+                // Create MediaPlayer if mediaPlayer variable is null
+                _mainState.value.mediaPlayer ?: run {
+                    Log.v(TAG, "MediaPlayer: CREATE")
+                    val audioAttributes = AudioAttributes
+                        .Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                    _mainState.update { it.copy(mediaPlayer = MediaPlayer()) }
+                    _mainState.value.mediaPlayer?.apply {
+                        setAudioAttributes(audioAttributes)
+                        setDataSource(eventArgs.audioUrl)
+                    }
+                }
+
+                // Play/Stop sound while controlling audio state variables
+                _mainState.value.mediaPlayer?.apply {
+                    Log.v(TAG, "MediaPlayer: Audio ID $audioSessionId")
+                    if (_mainState.value.isAudioPlaying) {
+                        Log.v(TAG, "MediaPlayer: STOP")
+                        stop()
+                        _mainState.update {
+                            it.copy(
+                                isAudioLoading = false,
+                                isAudioPlaying = false
+                            )
+                        }
+                        return@apply
+                    }
+                    if (!this.isPlaying && !_mainState.value.isAudioLoading) {
+                        Log.v(TAG, "MediaPlayer: prepareAsync called")
+                        prepareAsync()
+                        _mainState.update {
+                            it.copy(
+                                isAudioLoading = true
+                            )
+                        }
+                    }
+                    setOnPreparedListener {
+                        Log.v(TAG, "MediaPlayer: OnPrepared START")
+                        start()
+                        _mainState.update {
+                            it.copy(
+                                isAudioLoading = false,
+                                isAudioPlaying = true
+                            )
+                        }
+                    }
+                    setOnCompletionListener {
+                        Log.v(TAG, "MediaPlayer: OnCompleted STOP")
+                        stop()
+                        _mainState.update {
+                            it.copy(
+                                isAudioLoading = false,
+                                isAudioPlaying = false
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun releaseMediaPlayer() {
+        _mainState.value.mediaPlayer?.let {
+            Log.v(TAG, "MediaPlayer: RELEASE")
+            _mainState.value.mediaPlayer?.release()
+            _mainState.update {
+                it.copy(
+                    mediaPlayer = null,
+                    isAudioLoading = false,
+                    isAudioPlaying = false
+                )
             }
         }
     }
