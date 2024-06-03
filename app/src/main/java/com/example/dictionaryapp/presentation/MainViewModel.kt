@@ -15,6 +15,7 @@ import com.example.dictionaryapp.presentation.util.calcWordSimilarityScore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -150,6 +151,9 @@ class MainViewModel @Inject constructor(
             }
 
             is MainEvents.PlayAudio -> {
+                if (eventArgs.audioUrl.isEmpty()) {
+                    return
+                }
                 // Create MediaPlayer if mediaPlayer variable is null
                 _mainState.value.mediaPlayer ?: run {
                     Log.v(TAG, "MediaPlayer: CREATE")
@@ -254,6 +258,7 @@ class MainViewModel @Inject constructor(
     private suspend fun searchWord() {
         Log.v(TAG, "Called: searchWord()")
         setPreWordLoadMainState()
+        // delay(2000)
         dictionaryRepo.getWordResult(
             mainState.value.searchWord.lowercase()
         ).collect { result ->

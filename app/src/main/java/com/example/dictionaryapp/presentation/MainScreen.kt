@@ -318,14 +318,6 @@ fun WordScreen(
     onEvent: (MainEvents) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        // Column(
-        //     modifier = Modifier
-        //         .fillMaxWidth()
-        //         .height(100.dp)
-        //         .padding(horizontal = 30.dp)
-        // ) {
-        //     WordResultTitle(state = state)
-        // }
         WordResultTitle(state = state, onEvent = onEvent)
         Box(
             modifier = Modifier
@@ -394,6 +386,9 @@ fun WordAudioPlayButton(
     state: MainState,
     onEvent: (MainEvents) -> Unit
 ) {
+    if (state.showError || state.wordItem == null) {
+        return
+    }
     Box(
         modifier = Modifier
             .padding(horizontal = 30.dp)
@@ -419,12 +414,10 @@ fun WordAudioPlayButton(
                 )
                 .padding(18.dp)
                 .clickable {
-                    state.wordItem?.let { wordItem ->
-                        if (wordItem.audioUrl.isEmpty()) {
-                            return@clickable
-                        }
-                        onEvent(MainEvents.PlayAudio(wordItem.audioUrl))
+                    if (state.isLoading) {
+                        return@clickable
                     }
+                    onEvent(MainEvents.PlayAudio(state.wordItem.audioUrl))
                 },
             contentAlignment = Alignment.Center
         ) {
