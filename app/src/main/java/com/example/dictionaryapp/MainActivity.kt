@@ -20,16 +20,32 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private lateinit var vm: MainViewModel
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             DictionaryAppTheme {
-                val vm = hiltViewModel<MainViewModel>()
+                vm = hiltViewModel<MainViewModel>()
                 val state by vm.mainState.collectAsStateWithLifecycle()
                 BarColor()
                 MainScreen(state, vm::onEvent)
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        vm.releaseMediaPlayer()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        vm.releaseMediaPlayer()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        vm.releaseMediaPlayer()
     }
 
     @Composable

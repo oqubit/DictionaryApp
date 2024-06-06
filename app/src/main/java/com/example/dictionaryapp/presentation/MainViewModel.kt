@@ -216,7 +216,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun releaseMediaPlayer() {
+    fun releaseMediaPlayer() {
         _mainState.value.mediaPlayer?.let {
             Log.v(TAG, "MediaPlayer: RELEASE")
             _mainState.value.mediaPlayer?.release()
