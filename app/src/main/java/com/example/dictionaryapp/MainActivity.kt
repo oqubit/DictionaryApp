@@ -1,6 +1,7 @@
 package com.example.dictionaryapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -35,16 +36,23 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        vm.releaseMediaPlayer()
+        releaseMediaPlayer()
     }
 
     override fun onStop() {
         super.onStop()
-        vm.releaseMediaPlayer()
+        releaseMediaPlayer()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        releaseMediaPlayer()
+    }
+
+    private fun releaseMediaPlayer() {
+        if (isChangingConfigurations) {
+            return
+        }
         vm.releaseMediaPlayer()
     }
 
