@@ -31,12 +31,6 @@ fun List<PhoneticDto>?.toPhoneticString(): String {
     return this?.find { it.text != null }?.text ?: ""
 }
 
-/**
- Currently all audio URLs from the API are not working.
- A placeholder URL is used for development purposes.
- TODO: o_Q
- */
 fun List<PhoneticDto>?.toPhoneticAudioUrl(): String {
-    // return this?.find { it.audio != null }?.audio ?: ""
-    return "https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3"
+    return this?.find { it.audio != null }?.audio ?: ""
 }
