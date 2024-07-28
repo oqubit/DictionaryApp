@@ -521,10 +521,11 @@ private fun MainScreenPreview(
                 isLoading = data.isLoading,
                 showError = data.showError,
                 errorMessage = stringResource(R.string.couldnt_find_this_word),
+                isAudioApiPresent = true,
                 wordItem = WordItem(
                     word = "Welcome",
                     phonetic = "/ˈwɛlkəm/",
-                    audioUrl = "",
+                    audioUrl = "https://api.dictionaryapi.dev/media/pronunciations/en/welcome-us.mp3",
                     meanings = listOf(
                         Meaning(
                             partOfSpeech = "noun",
