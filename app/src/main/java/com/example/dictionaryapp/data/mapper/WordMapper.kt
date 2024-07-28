@@ -28,9 +28,9 @@ fun DefinitionDto?.toDefinition() = Definition(
 )
 
 fun List<PhoneticDto>?.toPhoneticString(): String {
-    return this?.find { it.text != null }?.text ?: ""
+    return this?.find { !it.text.isNullOrEmpty() }?.text ?: ""
 }
 
 fun List<PhoneticDto>?.toPhoneticAudioUrl(): String {
-    return this?.find { it.audio != null }?.audio ?: ""
+    return this?.find { !it.audio.isNullOrEmpty() }?.audio ?: ""
 }
