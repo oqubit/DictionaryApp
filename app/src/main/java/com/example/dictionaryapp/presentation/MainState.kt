@@ -13,6 +13,7 @@ data class MainState (
     val isLoading: Boolean = true,
     val isAudioLoading: Boolean = false,
     val isAudioPlaying: Boolean = false,
+    val isAudioApiPresent: Boolean = false,
     val showError: Boolean = false,
     val showSearchHistoryDialogBox: Boolean = false,
     val shouldReSortHistoryList: Boolean = false,

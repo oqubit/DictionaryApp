@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -64,7 +63,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -81,6 +79,7 @@ import com.example.dictionaryapp.R
 import com.example.dictionaryapp.domain.model.Definition
 import com.example.dictionaryapp.domain.model.Meaning
 import com.example.dictionaryapp.domain.model.WordItem
+import com.example.dictionaryapp.presentation.components.WordAudioPlayButton
 import com.example.dictionaryapp.presentation.util.keyboardAsState
 import com.example.dictionaryapp.ui.theme.DictionaryAppTheme
 
@@ -378,70 +377,6 @@ fun WordResultTitle(
             }
         }
         WordAudioPlayButton(state = state, onEvent = onEvent)
-    }
-}
-
-@Composable
-fun WordAudioPlayButton(
-    state: MainState,
-    onEvent: (MainEvents) -> Unit
-) {
-    if (state.showError || state.wordItem == null) {
-        return
-    }
-    Box(
-        modifier = Modifier
-            .padding(horizontal = 30.dp)
-            .padding(top = 10.dp)
-            .border(
-                5.dp, MaterialTheme.colorScheme.secondaryContainer.copy(0.7f),
-                CircleShape
-            )
-            .background(
-                MaterialTheme.colorScheme.secondaryContainer.copy(0.7f),
-                CircleShape
-            )
-    ) {
-        Box(
-            modifier = Modifier
-                .background(
-                    brush = Brush.linearGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary.copy(0.75f),
-                            MaterialTheme.colorScheme.secondaryContainer,
-                        )
-                    ), CircleShape
-                )
-                .padding(18.dp)
-                .clickable {
-                    if (state.isLoading) {
-                        return@clickable
-                    }
-                    onEvent(MainEvents.PlayAudio(state.wordItem.audioUrl))
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            if (state.isAudioLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .align(Alignment.Center),
-                    color = Color.White
-                )
-                return
-            }
-            Icon(
-                painter =
-                if (state.isAudioPlaying)
-                    painterResource(id = R.drawable.stop)
-                else
-                    painterResource(id = R.drawable.play),
-                contentDescription = "Listen to pronunciation",
-                modifier = Modifier
-                    .size(22.dp),
-                tint = Color.Unspecified
-            )
-        }
     }
 }
 

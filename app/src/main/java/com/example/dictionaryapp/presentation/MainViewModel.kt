@@ -280,6 +280,7 @@ class MainViewModel @Inject constructor(
                         _mainState.update {
                             it.copy(
                                 wordItem = wordItem,
+                                isAudioApiPresent = wordItem.audioUrl.isNotEmpty(),
                                 showError = false,
                                 isLoading = false
                             )
