@@ -19,6 +19,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -51,7 +53,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -69,10 +74,12 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -95,6 +102,24 @@ fun MainScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
+
+    var textFieldValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(state.searchWord))
+    }
+    var isTextFieldValueSetOutside by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    LaunchedEffect(isFocused) {
+        val endRange = if (isFocused) textFieldValue.text.length else 0
+        textFieldValue = textFieldValue.copy(
+            selection = TextRange(
+                start = endRange,
+                end = 0
+            )
+        )
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -104,12 +129,19 @@ fun MainScreen(
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(vertical = 5.dp, horizontal = 16.dp)
                     .focusRequester(focusRequester),
-                value = state.searchWord,
+                value = textFieldValue,
                 onValueChange = {
+                    if (isTextFieldValueSetOutside) {
+                        // Need to skip a tick as textFieldValue updates but "it" does not o_Q
+                        isTextFieldValueSetOutside = false
+                        return@OutlinedTextField
+                    }
+                    textFieldValue = it
                     onEvent(
-                        MainEvents.OnSearchWordChange(it)
+                        MainEvents.OnSearchWordChange(it.text)
                     )
                 },
+                interactionSource = interactionSource,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = {
@@ -163,6 +195,13 @@ fun MainScreen(
         ) {
             WordScreen(state, onEvent)
             HistoryList(
+                onTextFieldValueChange = { word: String ->
+                    textFieldValue = textFieldValue.copy(
+                        text = word,
+                        selection = TextRange(word.length)
+                    )
+                    isTextFieldValueSetOutside = true
+                },
                 searchHistoryList = state.searchHistoryList,
                 shouldResortHistory = state.shouldReSortHistoryList,
                 onEvent = onEvent,
@@ -227,6 +266,7 @@ fun SearchHistoryDialogBox(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HistoryList(
+    onTextFieldValueChange: (word: String) -> Unit,
     searchHistoryList: List<String>,
     shouldResortHistory: Boolean,
     onEvent: (MainEvents) -> Unit,
@@ -303,6 +343,7 @@ fun HistoryList(
                                 onClick = {
                                     onEvent(MainEvents.OnSearchWordChange(item, false))
                                     onEvent(MainEvents.OnSearchClick)
+                                    onTextFieldValueChange(item)
                                     keyboardController?.hide()
                                     focusManager.clearFocus()
                                 },
