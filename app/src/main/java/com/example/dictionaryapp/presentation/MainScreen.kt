@@ -62,8 +62,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -101,7 +99,6 @@ fun MainScreen(
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
-    val focusRequester = remember { FocusRequester() }
 
     var textFieldValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(state.searchWord))
@@ -127,8 +124,7 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(vertical = 5.dp, horizontal = 16.dp)
-                    .focusRequester(focusRequester),
+                    .padding(vertical = 5.dp, horizontal = 16.dp),
                 value = textFieldValue,
                 onValueChange = {
                     if (isTextFieldValueSetOutside) {
